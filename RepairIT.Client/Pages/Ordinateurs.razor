@@ -1,0 +1,212 @@
+@page "/ordinateurs"
+@inject IOrdinateurApiService OrdinateurApi
+
+<PageTitle>Ordinateurs</PageTitle>
+
+<h1>Catalogue des ordinateurs</h1>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(messageErreur ? "alert-danger" : "alert-success")">@message</div>
+}
+
+@if (formulaire == null)
+{
+    <button class="btn btn-primary mb-3" @onclick="OuvrirAjout">Ajouter un ordinateur</button>
+}
+else
+{
+    <h3>@(formulaire.Id == 0 ? "Nouvel ordinateur" : $"Modifier {formulaire.Nom}")</h3>
+
+    <EditForm Model="formulaire" OnValidSubmit="EnregistrerAsync" class="mb-4">
+        <DataAnnotationsValidator />
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Nom</label>
+                <InputText class="form-control" @bind-Value="formulaire.Nom" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Marque</label>
+                <InputText class="form-control" @bind-Value="formulaire.Marque" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Processeur</label>
+                <InputText class="form-control" @bind-Value="formulaire.Processeur" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Type</label>
+                <InputSelect class="form-select" @bind-Value="formulaire.Type">
+                    @foreach (var type in Enum.GetValues<TypeOrdinateur>())
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">RAM (Go)</label>
+                <InputNumber class="form-control" @bind-Value="formulaire.RamGo" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stockage (Go)</label>
+                <InputNumber class="form-control" @bind-Value="formulaire.StockageGo" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Prix (€)</label>
+                <InputNumber class="form-control" @bind-Value="formulaire.Prix" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Stock</label>
+                <InputNumber class="form-control" @bind-Value="formulaire.Stock" />
+            </div>
+        </div>
+        <ValidationSummary class="mt-3" />
+        <div class="mt-3">
+            <button type="submit" class="btn btn-primary">Enregistrer</button>
+            <button type="button" class="btn btn-secondary" @onclick="FermerFormulaire">Annuler</button>
+        </div>
+    </EditForm>
+}
+
+@if (ordinateurs == null)
+{
+    <p><em>Chargement...</em></p>
+}
+else if (ordinateurs.Count == 0)
+{
+    <p>Aucun ordinateur dans le catalogue.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Marque</th>
+                <th>Type</th>
+                <th>Processeur</th>
+                <th>RAM</th>
+                <th>Stockage</th>
+                <th>Prix</th>
+                <th>Stock</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var ordinateur in ordinateurs)
+            {
+                <tr>
+                    <td>@ordinateur.Nom</td>
+                    <td>@ordinateur.Marque</td>
+                    <td>@ordinateur.Type</td>
+                    <td>@ordinateur.Processeur</td>
+                    <td>@ordinateur.RamGo Go</td>
+                    <td>@ordinateur.StockageGo Go</td>
+                    <td>@ordinateur.Prix.ToString("N2") €</td>
+                    <td>@ordinateur.Stock</td>
+                    <td>
+                        @if (idASupprimer == ordinateur.Id)
+                        {
+                            <button class="btn btn-sm btn-danger" @onclick="() => SupprimerAsync(ordinateur.Id)">Confirmer</button>
+                            <button class="btn btn-sm btn-secondary" @onclick="() => idASupprimer = null">Annuler</button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => OuvrirModification(ordinateur)">Modifier</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => idASupprimer = ordinateur.Id">Supprimer</button>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+    private List<Ordinateur>? ordinateurs;
+
+    private Ordinateur? formulaire;
+
+    private int? idASupprimer;
+
+    private string? message;
+    private bool messageErreur;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChargerAsync();
+    }
+
+    private async Task ChargerAsync()
+    {
+        try
+        {
+            ordinateurs = await OrdinateurApi.ListerAsync();
+        }
+        catch (HttpRequestException)
+        {
+            ordinateurs = [];
+            AfficherMessage("Impossible de joindre l'API du catalogue (Gateway ou CatalogService arrêté).", true);
+        }
+    }
+
+    private void OuvrirAjout()
+    {
+        formulaire = new Ordinateur();
+        message = null;
+    }
+
+    private void OuvrirModification(Ordinateur ordinateur)
+    {
+        formulaire = new Ordinateur
+        {
+            Id = ordinateur.Id, Nom = ordinateur.Nom, Marque = ordinateur.Marque, Processeur = ordinateur.Processeur,
+            RamGo = ordinateur.RamGo, StockageGo = ordinateur.StockageGo, Type = ordinateur.Type,
+            Prix = ordinateur.Prix, Stock = ordinateur.Stock
+        };
+        message = null;
+    }
+
+    private void FermerFormulaire()
+    {
+        formulaire = null;
+    }
+
+    private async Task EnregistrerAsync()
+    {
+        var estAjout = formulaire!.Id == 0;
+        var succes = estAjout
+            ? await OrdinateurApi.AjouterAsync(formulaire)
+            : await OrdinateurApi.MettreAJourAsync(formulaire);
+
+        if (!succes)
+        {
+            AfficherMessage("L'enregistrement a échoué.", true);
+            return;
+        }
+
+        AfficherMessage(estAjout ? "Ordinateur ajouté au catalogue." : "Ordinateur modifié.", false);
+        formulaire = null;
+        await ChargerAsync();
+    }
+
+    private async Task SupprimerAsync(int id)
+    {
+        idASupprimer = null;
+
+        if (!await OrdinateurApi.SupprimerAsync(id))
+        {
+            AfficherMessage("La suppression a échoué.", true);
+            return;
+        }
+
+        AfficherMessage("Ordinateur supprimé du catalogue.", false);
+        await ChargerAsync();
+    }
+
+    private void AfficherMessage(string texte, bool estErreur)
+    {
+        message = texte;
+        messageErreur = estErreur;
+    }
+}
