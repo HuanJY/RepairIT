@@ -9,10 +9,10 @@ namespace RepairIT.UsersService.Controllers;
 [Route("api/[controller]")]
 public class UtilisateursController : ControllerBase
 {
-    private readonly UtilisateurService _service;
+    private readonly IUtilisateurService _service;
     private readonly ILogger<UtilisateursController> _logger;
 
-    public UtilisateursController(UtilisateurService service, ILogger<UtilisateursController> logger)
+    public UtilisateursController(IUtilisateurService service, ILogger<UtilisateursController> logger)
     {
         _service = service;
         _logger = logger;
