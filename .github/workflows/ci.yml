@@ -30,7 +30,7 @@ jobs:
         run: dotnet test RepairIT.sln --no-build --configuration Release --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./coverage
 
       - name: Calcul du rapport de couverture
-        uses: danielpalme/ReportGenerator-GitHub-Action@5
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.6.0
         with:
           reports: coverage/**/coverage.cobertura.xml
           targetdir: coveragereport
