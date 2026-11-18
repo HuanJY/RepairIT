@@ -9,12 +9,18 @@ builder.Services.AddSwaggerGen();
 
 
 builder.Services.AddDbContext<CatalogContext>(options =>
-    options.UseSqlite("Data Source=catalog.db"));
+    options.UseSqlite(builder.Configuration.GetConnectionString("CatalogDb")));
 
-
-builder.Services.AddScoped<OrdinateurService>();
+builder.Services.AddScoped<IOrdinateurService,OrdinateurService>();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<CatalogContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    CatalogDbInitializer.Initialiser(context, logger);
+}
 
 app.UseSwagger();
 app.UseSwaggerUI();

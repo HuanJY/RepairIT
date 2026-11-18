@@ -1,10 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using RepairIT.CatalogService.Data;
 using RepairIT.Shared.Modeles;
-
+using RepairIT.Shared.Modeles;
+using RepairIT.CatalogService.Services;
 namespace RepairIT.CatalogService.Services;
 
-public class OrdinateurService
+public class OrdinateurService : IOrdinateurService
 {
     private readonly CatalogContext _context;
     private readonly ILogger<OrdinateurService> _logger;

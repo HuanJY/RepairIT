@@ -9,17 +9,20 @@ namespace RepairIT.CatalogService.Controllers;
 [Route("api/[controller]")]
 public class OrdinateursController : ControllerBase
 {
-    private readonly OrdinateurService _service;
+    private readonly IOrdinateurService _service;
+    private readonly ILogger<OrdinateursController> _logger;
 
-    public OrdinateursController(OrdinateurService service)
+    // Le service et le logger sont fournis par l'injection de dépendances
+    public OrdinateursController(IOrdinateurService service, ILogger<OrdinateursController> logger)
     {
         _service = service;
+        _logger = logger;
     }
-
     // get /api/ordinateurs 200 : liste du catalogue
     [HttpGet]
     public async Task<IActionResult> Lister()
     {
+        _logger.LogInformation("Liste des ordinateurs demandée");
         return Ok(await _service.ListerAsync());
     }
 
@@ -27,10 +30,14 @@ public class OrdinateursController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> ObtenirParId(int id)
     {
+        _logger.LogInformation("Ordinateur demandé avec ID {Id}", id);
         var ordinateur = await _service.ObtenirParIdAsync(id);
         if (ordinateur == null)
+        {
+            _logger.LogWarning("Ordinateur avec ID {Id} non trouvé", id);
             return NotFound();
-
+        }
+        _logger.LogInformation("Ordinateur avec ID {Id} trouvé", id);
         return Ok(ordinateur);
     }
 
@@ -38,7 +45,9 @@ public class OrdinateursController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Ajouter(Ordinateur ordinateur)
     {
+        _logger.LogInformation("Ajout d'un nouvel ordinateur");
         var cree = await _service.AjouterAsync(ordinateur);
+        _logger.LogInformation("Ordinateur créé avec ID {Id}", cree.Id);
         return CreatedAtAction(nameof(ObtenirParId), new { id = cree.Id }, cree);
     }
 
@@ -46,9 +55,14 @@ public class OrdinateursController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<IActionResult> MettreAJour(int id, Ordinateur ordinateur)
     {
+        _logger.LogInformation("Mise à jour de l'ordinateur avec ID {Id}", id);
         if (!await _service.MettreAJourAsync(id, ordinateur))
+        {
+            _logger.LogWarning("Ordinateur avec ID {Id} non trouvé pour mise à jour", id);
             return NotFound();
+        }
 
+        _logger.LogInformation("Ordinateur avec ID {Id} mis à jour", id);
         return NoContent();
     }
 
@@ -56,9 +70,14 @@ public class OrdinateursController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Supprimer(int id)
     {
+        _logger.LogInformation("Suppression de l'ordinateur avec ID {Id}", id);
         if (!await _service.SupprimerAsync(id))
+        {
+            _logger.LogWarning("Ordinateur avec ID {Id} non trouvé pour suppression", id);
             return NotFound();
+        }
 
+        _logger.LogInformation("Ordinateur avec ID {Id} supprimé", id);
         return NoContent();
     }
 }
