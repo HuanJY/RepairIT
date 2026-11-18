@@ -7,10 +7,13 @@ namespace RepairIT.CatalogService.Services;
 public class OrdinateurService
 {
     private readonly CatalogContext _context;
+    private readonly ILogger<OrdinateurService> _logger;
 
-    public OrdinateurService(CatalogContext context)
+    // Le contexte et le logger sont fournis par l'injection de dépendances
+    public OrdinateurService(CatalogContext context, ILogger<OrdinateurService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // renvoie tous les ordi triés par marque puis par nom
@@ -36,7 +39,7 @@ public class OrdinateurService
 
         _context.Ordinateurs.Add(ordinateur);
         await _context.SaveChangesAsync();
-
+        _logger.LogInformation("Ordinateur créé avec ID {Id}", ordinateur.Id);
         return ordinateur;
     }
 
@@ -50,6 +53,7 @@ public class OrdinateurService
         CopierInformations(modifie, existant);
         await _context.SaveChangesAsync();
 
+        _logger.LogInformation("Ordinateur avec ID {Id} mis à jour", id);
         return true;
     }
 
@@ -63,6 +67,7 @@ public class OrdinateurService
         _context.Ordinateurs.Remove(existant);
         await _context.SaveChangesAsync();
 
+        _logger.LogInformation("Ordinateur avec ID {Id} supprimé", id);
         return true;
     }
 
