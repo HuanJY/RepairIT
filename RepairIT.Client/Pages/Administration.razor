@@ -1,0 +1,135 @@
+@page "/administration"
+@inject IUtilisateurApiService UtilisateurApi
+
+<PageTitle>Administration</PageTitle>
+
+<h1>Utilisateurs</h1>
+
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert @(messageErreur ? "alert-danger" : "alert-success")">@message</div>
+}
+
+<h3>Créer un utilisateur</h3>
+
+<EditForm Model="nouvelUtilisateur" OnValidSubmit="CreerAsync" class="mb-4">
+    <DataAnnotationsValidator />
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Nom</label>
+            <InputText class="form-control" @bind-Value="nouvelUtilisateur.Nom" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Prénom</label>
+            <InputText class="form-control" @bind-Value="nouvelUtilisateur.Prenom" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">E-mail</label>
+            <InputText class="form-control" @bind-Value="nouvelUtilisateur.Email" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Rôle</label>
+            <InputSelect class="form-select" @bind-Value="nouvelUtilisateur.Role">
+                @foreach (var role in Enum.GetValues<RoleUtilisateur>())
+                {
+                    <option value="@role">@role</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+    <ValidationSummary class="mt-3" />
+    <button type="submit" class="btn btn-primary mt-3">Créer</button>
+</EditForm>
+
+@if (utilisateurs == null)
+{
+    <p><em>Chargement...</em></p>
+}
+else if (utilisateurs.Count == 0)
+{
+    <p>Aucun utilisateur.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nom</th>
+                <th>Prénom</th>
+                <th>E-mail</th>
+                <th>Rôle</th>
+                <th>Compte Keycloak</th>
+                <th>Actif</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var utilisateur in utilisateurs)
+            {
+                <tr>
+                    <td>@utilisateur.Nom</td>
+                    <td>@utilisateur.Prenom</td>
+                    <td>@utilisateur.Email</td>
+                    <td>@utilisateur.Role</td>
+                    <td>@utilisateur.UserKeycloak</td>
+                    <td>@(utilisateur.EstActif ? "Oui" : "Non")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code
+{
+
+    private List<Utilisateur>? utilisateurs;
+
+    private UtilisateurCreationDto nouvelUtilisateur = new();
+
+    private string? message;
+    private bool messageErreur;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ChargerAsync();
+    }
+
+    private async Task ChargerAsync()
+    {
+        try
+        {
+            utilisateurs = await UtilisateurApi.ListerAsync();
+        }
+        catch (HttpRequestException)
+        {
+            utilisateurs = [];
+            AfficherMessage("Impossible de joindre l'API des utilisateurs (Gateway ou UsersService arrêté).", true);
+        }
+    }
+
+    private async Task CreerAsync()
+    {
+        var statut = await UtilisateurApi.CreerAsync(nouvelUtilisateur);
+
+        if (statut == HttpStatusCode.Conflict)
+        {
+            AfficherMessage("Un utilisateur utilise déjà cette adresse e-mail.", true);
+            return;
+        }
+
+        if (statut != HttpStatusCode.Created)
+        {
+            AfficherMessage("La création a échoué.", true);
+            return;
+        }
+
+        AfficherMessage($"Utilisateur {nouvelUtilisateur.Prenom} {nouvelUtilisateur.Nom} créé.", false);
+        nouvelUtilisateur = new UtilisateurCreationDto();
+        await ChargerAsync();
+    }
+
+    private void AfficherMessage(string texte, bool estErreur)
+    {
+        message = texte;
+        messageErreur = estErreur;
+    }
+}

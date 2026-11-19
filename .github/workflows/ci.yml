@@ -1,0 +1,46 @@
+# Intégration continue RepairIT : restauration, compilation, tests et couverture de code
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]          
+  pull_request:
+    branches: [ main, production ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Installation du SDK .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restauration des dépendances
+        run: dotnet restore RepairIT.sln
+
+      - name: Compilation
+        run: dotnet build RepairIT.sln --no-restore --configuration Release
+
+      - name: Tests et collecte de la couverture
+        run: dotnet test RepairIT.sln --no-build --configuration Release --settings coverlet.runsettings --collect:"XPlat Code Coverage" --results-directory ./coverage
+
+      - name: Calcul du rapport de couverture
+        uses: danielpalme/ReportGenerator-GitHub-Action@5.6.0
+        with:
+          reports: coverage/**/coverage.cobertura.xml
+          targetdir: coveragereport
+          reporttypes: MarkdownSummaryGithub;Html
+
+      - name: Affichage de la couverture dans le résumé du workflow
+        run: cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Publication du rapport détaillé
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapport-couverture
+          path: coveragereport
