@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using RepairIT.CatalogService.Data;
 using RepairIT.Shared.Modeles;
-using RepairIT.Shared.Modeles;
 using RepairIT.CatalogService.Services;
 namespace RepairIT.CatalogService.Services;
 

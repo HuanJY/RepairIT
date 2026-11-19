@@ -53,6 +53,18 @@ public class UtilisateursControllerTests
     }
 
     [Fact]
+    public async Task ObtenirParId_UtilisateurExistant_RetourneUtilisateur()
+    {
+        var utilisateur = new Utilisateur { Id = 3, Nom = "Martin" };
+        _serviceMock.Setup(s => s.ObtenirParIdAsync(3)).ReturnsAsync(utilisateur);
+
+        var resultat = await _controller.ObtenirParId(3);
+
+        var ok = Assert.IsType<OkObjectResult>(resultat);
+        Assert.Same(utilisateur, ok.Value);
+    }
+
+    [Fact]
     public async Task Lister_RetourneOk()
     {
         _serviceMock.Setup(s => s.ListerAsync()).ReturnsAsync(new List<Utilisateur>());

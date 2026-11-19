@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using RepairIT.Shared.Dtos;
@@ -81,5 +82,41 @@ public class UtilisateurServiceTests
         var trouve = await _service.ObtenirParIdAsync(42);
 
         Assert.Null(trouve);
+    }
+
+    [Fact]
+    public async Task ObtenirParIdAsync_IdExistant_RetourneUtilisateur()
+    {
+        var cree = await _service.CreerAsync(CreerDto());
+
+        var trouve = await _service.ObtenirParIdAsync(cree!.Id);
+
+        Assert.NotNull(trouve);
+        Assert.Equal(cree.Id, trouve.Id);
+        Assert.Equal(cree.Email, trouve.Email);
+    }
+
+    [Fact]
+    public async Task Initialiser_BaseSqlite_ReappliquerPreserveLesDonnees()
+    {
+        using var connexion = new SqliteConnection("Data Source=:memory:");
+        await connexion.OpenAsync();
+        var options = new DbContextOptionsBuilder<UsersContext>()
+            .UseSqlite(connexion)
+            .Options;
+        using var context = new UsersContext(options);
+
+        UsersDbInitializer.Initialiser(context, NullLogger.Instance);
+        Assert.Equal(3, await context.Utilisateurs.CountAsync());
+
+        var utilisateur = await context.Utilisateurs.FirstAsync();
+        utilisateur.Nom = "Modifie";
+        await context.SaveChangesAsync();
+
+        UsersDbInitializer.Initialiser(context, NullLogger.Instance);
+
+        context.ChangeTracker.Clear();
+        Assert.Equal(3, await context.Utilisateurs.CountAsync());
+        Assert.Equal("Modifie", (await context.Utilisateurs.FindAsync(utilisateur.Id))!.Nom);
     }
 }

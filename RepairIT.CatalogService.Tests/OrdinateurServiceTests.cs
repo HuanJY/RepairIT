@@ -1,3 +1,4 @@
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using RepairIT.CatalogService.Data;
@@ -135,5 +136,29 @@ public class OrdinateurServiceTests
 
         Assert.False(resultat);
         Assert.Single(await _service.ListerAsync());
+    }
+
+    [Fact]
+    public async Task Initialiser_BaseSqlite_ReappliquerPreserveLesDonnees()
+    {
+        using var connexion = new SqliteConnection("Data Source=:memory:");
+        await connexion.OpenAsync();
+        var options = new DbContextOptionsBuilder<CatalogContext>()
+            .UseSqlite(connexion)
+            .Options;
+        using var context = new CatalogContext(options);
+
+        CatalogDbInitializer.Initialiser(context, NullLogger.Instance);
+        Assert.Equal(6, await context.Ordinateurs.CountAsync());
+
+        var ordinateur = await context.Ordinateurs.FirstAsync();
+        ordinateur.Stock = 42;
+        await context.SaveChangesAsync();
+
+        CatalogDbInitializer.Initialiser(context, NullLogger.Instance);
+
+        context.ChangeTracker.Clear();
+        Assert.Equal(6, await context.Ordinateurs.CountAsync());
+        Assert.Equal(42, (await context.Ordinateurs.FindAsync(ordinateur.Id))!.Stock);
     }
 }
